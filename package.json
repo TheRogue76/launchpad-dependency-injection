@@ -1,5 +1,5 @@
 {
-  "name": "dependency-injection",
+  "name": "launchpad-dependency-injection",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
