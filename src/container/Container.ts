@@ -1,12 +1,12 @@
 import 'reflect-metadata';
-import { Token, Constructor, Binding, Lifecycle } from './types';
+import { Token, Constructor, Binding, Lifecycle } from './types.js';
 import {
   DependencyNotFoundError,
   CircularDependencyError,
   InvalidConstructorError,
   NotInjectableError,
-} from './errors';
-import { isInjectable, getLifecycle, getParamTypes } from './metadata';
+} from './errors.js';
+import { isInjectable, getLifecycle, getInjectTokens } from './metadata.js';
 
 /**
  * Dependency injection container
@@ -93,9 +93,6 @@ export class Container {
    * Create an instance with automatic constructor dependency injection
    */
   private createInstance<T>(token: Token<T>, ctor: Constructor<T>): T {
-    // Import getInjectTokens dynamically to avoid circular dependency
-    const { getInjectTokens } = require('./decorators');
-
     // Get inject tokens from @inject decorators
     const injectTokens: Token<any>[] | undefined = getInjectTokens(ctor);
 

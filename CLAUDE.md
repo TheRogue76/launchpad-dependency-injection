@@ -15,12 +15,15 @@ A type-safe TypeScript dependency injection framework with decorator-based regis
 ## TypeScript Configuration
 
 - **Target**: ES2022
-- **Module System**: CommonJS
+- **Module System**: ES Modules (ESM)
+- **Module Resolution**: bundler
 - **Strict Mode**: Enabled
 - **Experimental Decorators**: Enabled
 - **Decorator Metadata**: Enabled
 - **Source**: `src/`
 - **Output**: `dist/`
+
+**Note**: This is an ESM package. All imports must include `.js` extensions in the source files.
 
 ## Project Structure
 

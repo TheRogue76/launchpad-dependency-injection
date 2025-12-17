@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Container, createToken, injectable, singleton, transient, inject } from '../index';
+import { Container, createToken, injectable, singleton, transient, inject } from '../index.js';
 
 // ============================================
 // 1. Define interfaces and create tokens

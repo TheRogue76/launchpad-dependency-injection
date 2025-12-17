@@ -2,13 +2,13 @@
 import 'reflect-metadata';
 
 // Export container
-export { Container } from './container/Container';
+export { Container } from './container/Container.js';
 
 // Export types
-export { Token, Lifecycle, Constructor, Binding, createToken } from './container/types';
+export { Token, Lifecycle, Constructor, Binding, createToken } from './container/types.js';
 
 // Export decorators
-export { injectable, singleton, transient, inject } from './container/decorators';
+export { injectable, singleton, transient, inject } from './container/decorators.js';
 
 // Export errors
 export {
@@ -16,4 +16,4 @@ export {
   CircularDependencyError,
   InvalidConstructorError,
   NotInjectableError,
-} from './container/errors';
+} from './container/errors.js';

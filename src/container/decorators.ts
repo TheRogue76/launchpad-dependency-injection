@@ -1,30 +1,12 @@
-import { Lifecycle, Token } from './types';
-import { markInjectable, setLifecycle } from './metadata';
-
-const INJECT_TOKENS_KEY = Symbol('inject_tokens');
-
-/**
- * Store injection tokens for constructor parameters
- */
-function setInjectTokens(target: Function, tokens: Token<any>[]): void {
-  Reflect.defineMetadata(INJECT_TOKENS_KEY, tokens, target);
-}
-
-/**
- * Get injection tokens for constructor parameters
- */
-export function getInjectTokens(target: Function): Token<any>[] | undefined {
-  return Reflect.getMetadata(INJECT_TOKENS_KEY, target);
-}
+import { Lifecycle, Token } from './types.js';
+import { markInjectable, setLifecycle, setInjectToken } from './metadata.js';
 
 /**
  * Parameter decorator to specify which token to inject
  */
 export function inject<T>(token: Token<T>): ParameterDecorator {
   return function (target: Object, propertyKey: string | symbol | undefined, parameterIndex: number) {
-    const existingTokens: Token<any>[] = Reflect.getMetadata(INJECT_TOKENS_KEY, target) || [];
-    existingTokens[parameterIndex] = token;
-    Reflect.defineMetadata(INJECT_TOKENS_KEY, existingTokens, target);
+    setInjectToken(target as Function, parameterIndex, token);
   };
 }
 

@@ -1,4 +1,4 @@
-import { Token } from './types';
+import { Token } from './types.js';
 
 /**
  * Error thrown when a requested dependency is not registered in the container
