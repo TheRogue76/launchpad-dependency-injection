@@ -15,9 +15,9 @@ A lightweight, type-safe dependency injection container for TypeScript with deco
 ## Installation
 
 ```bash
-yarn add dependency-injection
+yarn add launchpad-dependency-injection
 # or
-npm install dependency-injection
+npm install launchpad-dependency-injection
 ```
 
 ## Quick Start
@@ -284,7 +284,7 @@ import 'reflect-metadata';
 
 ## Example
 
-See the [complete example](./src/examples/basic-usage.ts) for a full demonstration of all features.
+See the [complete example](examples/basic-usage.ts) for a full demonstration of all features.
 
 ## License
 
