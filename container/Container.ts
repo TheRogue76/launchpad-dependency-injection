@@ -6,7 +6,8 @@ import {
   InvalidConstructorError,
   NotInjectableError,
 } from './errors.js';
-import { isInjectable, getLifecycle, getInjectTokens } from './metadata.js';
+import { isInjectable, getLifecycle } from './metadata.js';
+import { setContainer, getContainer } from './context.js';
 
 /**
  * Dependency injection container
@@ -52,6 +53,8 @@ export class Container {
 
   /**
    * Resolve a dependency by its token
+   * Automatically sets this container as the active container during resolution
+   * so that nested get() calls work correctly
    */
   resolve<T>(token: Token<T>): T {
     // Check if dependency is registered
@@ -73,6 +76,17 @@ export class Container {
       }
     }
 
+    // Store the previous active container (if any)
+    let previousContainer: Container | null = null;
+    try {
+      previousContainer = getContainer();
+    } catch {
+      // No active container yet, that's fine
+    }
+
+    // Set this container as active for nested get() calls
+    setContainer(this);
+
     // Create instance with dependency injection
     this.resolutionStack.push(token);
     try {
@@ -86,51 +100,22 @@ export class Container {
       return instance;
     } finally {
       this.resolutionStack.pop();
+
+      // Restore previous container context
+      if (previousContainer) {
+        setContainer(previousContainer);
+      }
     }
   }
 
   /**
-   * Create an instance with automatic constructor dependency injection
+   * Create an instance without automatic constructor dependency injection
+   * Dependencies should be resolved using get() within the class
    */
   private createInstance<T>(token: Token<T>, ctor: Constructor<T>): T {
-    // Get inject tokens from @inject decorators
-    const injectTokens: Token<any>[] | undefined = getInjectTokens(ctor);
-
-    // If no @inject decorators, try to instantiate without dependencies
-    if (!injectTokens || injectTokens.length === 0) {
-      try {
-        return new ctor();
-      } catch (error) {
-        throw new InvalidConstructorError(
-          token,
-          `Failed to instantiate (no dependencies declared with @inject): ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
-        );
-      }
-    }
-
-    // Resolve each dependency
-    const resolvedDeps = injectTokens.map((depToken) => {
-      if (!depToken) {
-        throw new InvalidConstructorError(
-          token,
-          'Missing @inject decorator for constructor parameter'
-        );
-      }
-
-      // Check if dependency is registered
-      if (!this.bindings.has(depToken.symbol)) {
-        throw new DependencyNotFoundError(depToken);
-      }
-
-      // Recursively resolve the dependency
-      return this.resolve(depToken);
-    });
-
-    // Instantiate with resolved dependencies
     try {
-      return new ctor(...resolvedDeps);
+      // Simply instantiate the class - it will use get() for dependencies
+      return new ctor();
     } catch (error) {
       throw new InvalidConstructorError(
         token,

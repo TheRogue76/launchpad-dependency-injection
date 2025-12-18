@@ -1,18 +1,9 @@
-import { Lifecycle, Token } from './types.js';
-import { markInjectable, setLifecycle, setInjectToken } from './metadata.js';
-
-/**
- * Parameter decorator to specify which token to inject
- */
-export function inject<T>(token: Token<T>): ParameterDecorator {
-  return function (target: Object, propertyKey: string | symbol | undefined, parameterIndex: number) {
-    setInjectToken(target as Function, parameterIndex, token);
-  };
-}
+import { Lifecycle } from './types.js';
+import { markInjectable, setLifecycle } from './metadata.js';
 
 /**
  * Mark a class as injectable with automatic dependency resolution
- * Constructor parameters will be resolved from the container
+ * Dependencies should be resolved using get() within the class
  */
 export function injectable(): ClassDecorator {
   return function (target: Function) {
