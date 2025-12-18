@@ -2,16 +2,33 @@
   "name": "launchpad-dependency-injection",
   "version": "1.0.1",
   "type": "module",
-  "module": "dist/index.js",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
   },
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "yarn build:esm && yarn build:cjs && yarn build:cjs-package",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:cjs-package": "echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
     "dev": "tsx watch index.ts",
-    "start": "node dist/index.js",
-    "example": "node dist/examples/basic-usage.js"
+    "start": "node dist/esm/index.js",
+    "example": "node dist/esm/examples/basic-usage.js"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
