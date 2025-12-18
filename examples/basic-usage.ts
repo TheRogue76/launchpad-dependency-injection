@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Container, createToken, injectable, singleton, transient, inject } from '../index.js';
+import { Container, createToken, singleton, transient, get, setContainer } from '../index.js';
 
 // ============================================
 // 1. Define interfaces and create tokens
@@ -46,8 +46,10 @@ class ConsoleLogger implements Logger {
 
 @singleton()
 class PostgresDatabase implements Database {
-  // Constructor parameters are fully typed with @inject!
-  constructor(@inject(Logger) private logger: Logger) {
+  // Property injection using get()
+  private logger = get(Logger);
+
+  constructor() {
     this.logger.log('PostgresDatabase instance created');
   }
 
@@ -63,11 +65,11 @@ class PostgresDatabase implements Database {
 
 @transient()
 class UserServiceImpl implements UserService {
-  // Multiple dependencies, all fully typed with @inject!
-  constructor(
-    @inject(Logger) private logger: Logger,
-    @inject(Database) private database: Database
-  ) {
+  // Multiple dependencies using get()
+  private logger = get(Logger);
+  private database = get(Database);
+
+  constructor() {
     this.logger.log('UserService instance created');
   }
 
@@ -87,10 +89,13 @@ class UserServiceImpl implements UserService {
 // ============================================
 
 function main() {
-  console.log('=== Dependency Injection Framework Demo ===\n');
+  console.log('=== Dependency Injection Framework Demo (Koin-Style) ===\n');
 
   // Create container
   const container = new Container();
+
+  // Set as global container for get() calls
+  setContainer(container);
 
   // Register dependencies
   console.log('--- Registering dependencies ---');

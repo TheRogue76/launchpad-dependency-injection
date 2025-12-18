@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A type-safe TypeScript dependency injection framework with decorator-based registration, lifecycle management (Singleton/Transient), and full type inference. Built with reflect-metadata for automatic constructor dependency resolution.
+A type-safe TypeScript dependency injection framework with decorator-based registration, lifecycle management (Singleton/Transient), and full type inference. Uses Koin-style property injection with `get()` function for easy testing and loose coupling. Built with reflect-metadata.
 
 ## Development Commands
 
@@ -28,16 +28,17 @@ A type-safe TypeScript dependency injection framework with decorator-based regis
 ## Project Structure
 
 ```
-src/
-├── container/          # Core DI framework
-│   ├── Container.ts    # Main container with register/resolve
-│   ├── types.ts        # Token creation, Lifecycle enum
-│   ├── decorators.ts   # @injectable, @singleton, @transient, @inject
-│   ├── metadata.ts     # Metadata utilities
-│   └── errors.ts       # Custom error classes
-├── examples/
-│   └── basic-usage.ts  # Complete usage demonstration
-└── index.ts            # Public API exports
+container/              # Core DI framework
+├── Container.ts        # Main container with register/resolve
+├── context.ts          # Global container context and get() function
+├── types.ts            # Token creation, Lifecycle enum
+├── decorators.ts       # @injectable, @singleton, @transient
+├── metadata.ts         # Metadata utilities
+└── errors.ts           # Custom error classes
+examples/
+├── basic-usage.ts      # Complete usage demonstration
+└── testing-pattern.ts  # Testing with mocks demonstration
+index.ts                # Public API exports
 ```
 
 ## Key Concepts
@@ -49,9 +50,16 @@ src/
 ### Decorators
 - `@singleton()` - Same instance returned every time
 - `@transient()` - New instance created every time
-- `@inject(token)` - Specify which token to inject for each parameter
+- `@injectable()` - Mark a class as injectable (optional, implied by lifecycle decorators)
+
+### Dependency Injection
+- Use `get(Token)` function to resolve dependencies within classes
+- Call `setContainer(container)` once at application startup
+- Optional constructor parameters enable easy testing with mocks
 
 ### Usage Pattern
+
+**Production Code:**
 ```typescript
 const Logger = createToken<Logger>('Logger');
 
@@ -62,12 +70,34 @@ class ConsoleLogger implements Logger {
 
 @transient()
 class UserService {
-  constructor(@inject(Logger) private logger: Logger) {}
+  private logger = get(Logger);
+
+  getUser(id: number) {
+    this.logger.log(`Getting user ${id}`);
+  }
 }
 
 const container = new Container();
+setContainer(container);  // Set global container
 container.register(Logger, ConsoleLogger);
 container.register(UserService, UserService);
 
 const service = container.resolve(UserService);
+```
+
+**Testing with Mocks:**
+```typescript
+@transient()
+class UserService {
+  private logger: Logger;
+
+  // Optional constructor params for testing
+  constructor(logger?: Logger) {
+    this.logger = logger ?? get(Logger);
+  }
+}
+
+// In tests: pass mocks directly, no container needed!
+const mockLogger = new MockLogger();
+const service = new UserService(mockLogger);
 ```

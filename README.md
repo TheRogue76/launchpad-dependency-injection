@@ -1,14 +1,14 @@
 # TypeScript Dependency Injection Framework
 
-A lightweight, type-safe dependency injection container for TypeScript with decorator-based registration, automatic constructor injection, and lifecycle management.
+A lightweight, type-safe dependency injection container for TypeScript with Koin-style property injection, decorator-based registration, and lifecycle management. Perfect for testing with easy mock injection!
 
 ## Features
 
 - 🔒 **Type-Safe** - Full TypeScript type inference with no `any` types
-- 🎯 **Decorator-Based** - Clean syntax using `@singleton()`, `@transient()`, and `@inject()`
+- 🎯 **Koin-Style Injection** - Clean property injection using `get()` function
+- 🧪 **Test-Friendly** - Trivial to test with mock dependencies via optional constructor params
 - 🔄 **Lifecycle Management** - Built-in singleton and transient lifecycle support
 - 🛡️ **Error Handling** - Descriptive errors for missing dependencies and circular dependency detection
-- 🧪 **Test-Friendly** - Easy to mock and swap implementations
 - 📦 **ESM Native** - Modern ES Modules support
 - 🪶 **Lightweight** - Minimal dependencies (only reflect-metadata)
 
@@ -24,7 +24,7 @@ npm install launchpad-dependency-injection
 
 ```typescript
 import 'reflect-metadata';
-import { Container, createToken, singleton, transient, inject } from 'dependency-injection';
+import { Container, createToken, singleton, transient, get, setContainer } from 'dependency-injection';
 
 // 1. Define your interfaces and create tokens
 interface Logger {
@@ -40,10 +40,10 @@ class ConsoleLogger implements Logger {
   }
 }
 
-// 3. Use dependency injection with @inject
+// 3. Use property injection with get()
 @transient()
 class UserService {
-  constructor(@inject(Logger) private logger: Logger) {}
+  private logger = get(Logger);
 
   getUser(id: number): void {
     this.logger.log(`Getting user ${id}`);
@@ -52,6 +52,7 @@ class UserService {
 
 // 4. Setup the container
 const container = new Container();
+setContainer(container);  // Set as global container
 container.register(Logger, ConsoleLogger);
 container.register(UserService, UserService);
 
@@ -59,6 +60,34 @@ container.register(UserService, UserService);
 const userService = container.resolve(UserService);
 userService.getUser(1); // [LOG] Getting user 1
 ```
+
+## Why Koin-Style? Testing Made Trivial!
+
+The Koin-style property injection pattern makes testing incredibly easy. Simply use optional constructor parameters:
+
+```typescript
+@transient()
+class UserService {
+  private logger: Logger;
+
+  // Optional constructor params for testing
+  constructor(logger?: Logger) {
+    this.logger = logger ?? get(Logger);
+  }
+}
+
+// Production: Container handles everything
+const container = new Container();
+setContainer(container);
+container.register(Logger, ConsoleLogger);
+const service = container.resolve(UserService);
+
+// Testing: Just pass mocks - NO CONTAINER NEEDED!
+const mockLogger = new MockLogger();
+const service = new UserService(mockLogger);  // Easy!
+```
+
+No more coupling your tests to the DI framework. No more complex test setup. Just plain TypeScript constructors!
 
 ## Core Concepts
 
@@ -97,18 +126,35 @@ class RequestHandler {
 }
 ```
 
-### Constructor Injection
+### Property Injection
 
-Use `@inject(token)` to specify which dependencies to inject:
+Use the `get()` function to resolve dependencies within your classes:
 
 ```typescript
 @singleton()
 class UserRepository {
-  constructor(
-    @inject(Database) private db: Database,
-    @inject(Logger) private logger: Logger
-  ) {
-    // Fully typed constructor parameters!
+  private db = get(Database);
+  private logger = get(Logger);
+
+  save(user: User): void {
+    this.logger.log('Saving user...');
+    this.db.query('INSERT INTO users ...');
+  }
+}
+```
+
+For test-friendly classes, use optional constructor parameters:
+
+```typescript
+@singleton()
+class UserRepository {
+  private db: Database;
+  private logger: Logger;
+
+  // Optional params enable easy testing!
+  constructor(db?: Database, logger?: Logger) {
+    this.db = db ?? get(Database);
+    this.logger = logger ?? get(Logger);
   }
 }
 ```
@@ -169,15 +215,34 @@ Create a type-safe token for a dependency.
 const MyService = createToken<MyService>('MyService');
 ```
 
-### Decorators
+#### `setContainer(container: Container): void`
 
-#### `@inject(token: Token<T>)`
-
-Parameter decorator to specify which token to inject for a constructor parameter.
+Set the global active container. Call this once at application startup.
 
 ```typescript
-constructor(@inject(Logger) private logger: Logger) {}
+const container = new Container();
+setContainer(container);
 ```
+
+#### `getContainer(): Container`
+
+Get the current active container. Throws `NoActiveContainerError` if no container has been set.
+
+```typescript
+const container = getContainer();
+```
+
+#### `get<T>(token: Token<T>): T`
+
+Resolve a dependency from the active container. This is the primary way to inject dependencies.
+
+```typescript
+class UserService {
+  private logger = get(Logger);
+}
+```
+
+### Decorators
 
 #### `@singleton()`
 
@@ -213,18 +278,56 @@ class Service {}
 ```typescript
 @singleton()
 class UserService {
-  constructor(
-    @inject(Logger) private logger: Logger,
-    @inject(Database) private db: Database,
-    @inject(Cache) private cache: Cache
-  ) {}
+  private logger = get(Logger);
+  private db = get(Database);
+  private cache = get(Cache);
+
+  // All dependencies resolved automatically!
 }
 ```
 
 ### Testing with Mocks
 
+The optional constructor parameter pattern makes testing incredibly easy:
+
 ```typescript
-// Create a mock implementation
+// Your service with test-friendly constructor
+@transient()
+class UserService {
+  private logger: Logger;
+  private db: Database;
+
+  constructor(logger?: Logger, db?: Database) {
+    this.logger = logger ?? get(Logger);
+    this.db = db ?? get(Database);
+  }
+
+  getUser(id: number): User {
+    this.logger.log(`Getting user ${id}`);
+    return this.db.query(`SELECT * FROM users WHERE id = ${id}`);
+  }
+}
+
+// In your tests: just pass mocks, NO CONTAINER NEEDED!
+class MockLogger implements Logger {
+  logs: string[] = [];
+  log(msg: string) { this.logs.push(msg); }
+}
+
+const mockLogger = new MockLogger();
+const mockDb = new MockDatabase();
+const service = new UserService(mockLogger, mockDb);
+
+// Test the service
+service.getUser(123);
+assert(mockLogger.logs.includes('Getting user 123'));
+```
+
+### Alternative: Testing with Container
+
+You can also use a test container with mock implementations:
+
+```typescript
 @singleton()
 class MockLogger implements Logger {
   log(message: string): void {
@@ -232,8 +335,8 @@ class MockLogger implements Logger {
   }
 }
 
-// Register the mock in your test
 const testContainer = new Container();
+setContainer(testContainer);
 testContainer.register(Logger, MockLogger);
 testContainer.register(UserService, UserService);
 
@@ -282,9 +385,10 @@ try {
 import 'reflect-metadata';
 ```
 
-## Example
+## Examples
 
-See the [complete example](examples/basic-usage.ts) for a full demonstration of all features.
+- **[Basic Usage](examples/basic-usage.ts)** - Complete demonstration of Koin-style DI with lifecycle management
+- **[Testing Patterns](examples/testing-pattern.ts)** - Shows how to test with mocks (production, testing, and hybrid approaches)
 
 ## License
 
